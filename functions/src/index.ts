@@ -1,10 +1,27 @@
+/* eslint-disable camelcase */
+/* eslint-disable max-len */
 import * as functions from "firebase-functions";
-import * as configs from './configs/configs';
+import * as admin from 'firebase-admin';
+import * as configs from "./configs/configs";
 
-// // Start writing Firebase Functions
-// // https://firebase.google.com/docs/functions/typescript
-//
+import {post} from "./utils/requests";
+
+
+admin.initializeApp();
+
 export const fetchAccessToken = functions.https.onRequest((request, response) => {
-    functions.logger.info("fetchAccessToken request from UI", request.body);
-    functions.logger.info("The appId being used is ", configs.app_id);
+  functions.logger.info("fetchAccessToken request from UI", request.body);
+
+  const token_generage_body = {
+    type: "application",
+    appId: configs.app_id,
+    appSecret: configs.app_secret,
+  };
+
+  post(configs.token_generate_url, token_generage_body, {}).then((respObj) => {
+    functions.logger.info("The output achieved from token is ", respObj);
+    response.status(200).send({token: respObj.data.accessToken});
+  }).catch((err) => {
+    functions.logger.error("Error occured while generating token ", err);
+  });
 });

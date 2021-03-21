@@ -1,9 +1,13 @@
-const firebase_config: { symbl_url: string, token_path: string, app_id: string, app_secret: string } = JSON.parse(process.env.FIREBASE_CONFIG || "");
+/* eslint-disable linebreak-style */
+/* eslint-disable camelcase */
+import * as functions from "firebase-functions";
 
-const symbl_url = firebase_config.symbl_url;
-const token_path = firebase_config.token_path;
+const firebase_config = functions.config();
 
-export const app_id = firebase_config.app_id;
-export const app_secret = firebase_config.app_secret;
+const symbl_url = firebase_config.symbl.symbl_url;
+const token_path = firebase_config.symbl.token_path;
+
+export const app_id = firebase_config.symbl.app_id;
+export const app_secret = firebase_config.symbl.app_secret;
 
 export const token_generate_url = symbl_url + token_path;
