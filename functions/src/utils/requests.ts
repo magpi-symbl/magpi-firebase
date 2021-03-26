@@ -1,4 +1,3 @@
-import 'axios';
 import axios from 'axios';
 
 export const get = (url: string, params: object ) => {

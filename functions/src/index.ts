@@ -32,3 +32,5 @@ export const fetchAccessToken = functions.https.onRequest((request, response) =>
 
   })
 });
+
+exports.zoomEvents = require('./symbl/symbl').zoomEvents;
