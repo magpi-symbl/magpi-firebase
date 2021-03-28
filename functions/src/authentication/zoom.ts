@@ -6,9 +6,15 @@ import { post, get } from "../utils/requests";
 
 import jwtDecode from 'jwt-decode';
 
+const cors = require('cors')({
+    origin: true
+  });
+
 const express = require('express');
 
 const app = express();
+
+app.use(cors);
 
 app.post('/', async (req: functions.https.Request, res:functions.Response<any>) => {
     functions.logger.info("Fetch Zoom User Details URL hit", req.body);
@@ -17,6 +23,7 @@ app.post('/', async (req: functions.https.Request, res:functions.Response<any>) 
         code: req.body.token,
         grant_type: AUTHORIZATION_CODE,
         redirect_uri: ZOOM_REDIRECT_URI
+        // redirect_uri: 'http://localhost:3000/zoom-integrations' //currently uploaded
     };
 
     let userId = "";

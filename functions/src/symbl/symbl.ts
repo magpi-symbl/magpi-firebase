@@ -4,9 +4,15 @@ import { FIRESTORE, TRANSCRIPTS_COLLECTION} from "../constants/constants";
 const express = require('express');
 const app = express();
 
+const cors = require('cors')({
+    origin: true
+  });
+
+app.use(cors);
+
 app.post('/', async (req: functions.https.Request, res:functions.Response<any>) => {
-    functions.logger.info("Zoom events URL hit", req.body);
-    FIRESTORE.collection(TRANSCRIPTS_COLLECTION).where("jobId", "==", req.body.jobId).get()
+    functions.logger.info("Symbl Callback hit", req.body);
+    FIRESTORE.collection(TRANSCRIPTS_COLLECTION).where("jobId", "==", req.body.id).get()
     .then(querySnapshot => {
       querySnapshot.forEach(doc => doc.ref.set({status: req.body.status}, {merge: true}));
   })
