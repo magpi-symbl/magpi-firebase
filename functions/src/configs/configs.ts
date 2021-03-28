@@ -11,3 +11,6 @@ export const app_id = firebase_config.symbl.app_id;
 export const app_secret = firebase_config.symbl.app_secret;
 
 export const token_generate_url = symbl_url + token_path;
+
+export const zoom_username = firebase_config.zoom.username;
+export const zoom_password = firebase_config.zoom.password;
