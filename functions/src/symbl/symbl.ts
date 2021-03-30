@@ -14,7 +14,7 @@ app.post('/', async (req: functions.https.Request, res:functions.Response<any>) 
     functions.logger.info("Symbl Callback hit", req.body);
     FIRESTORE.collection(TRANSCRIPTS_COLLECTION).where("jobId", "==", req.body.id).get()
     .then(querySnapshot => {
-      querySnapshot.forEach(doc => doc.ref.set({status: req.body.status}, {merge: true}));
+      querySnapshot.forEach(doc => doc.ref.update({status: req.body.status}));
   })
   return res.status(200).send();
 });
