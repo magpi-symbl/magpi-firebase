@@ -16,3 +16,7 @@ export enum MEETING_EVENTS {
     MEETING_CREATED = "meeting.created",
     MEETING_STARTED = "meeting.started"
 }
+
+export enum RECORDING_EVENTS {
+    RECORDING_COMPLETED = "recording.completed"
+}

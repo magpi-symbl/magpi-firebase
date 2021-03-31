@@ -1,29 +1,44 @@
 import * as functions from "firebase-functions";
-import { REALTIME_DB, ZOOM_MEETINGS_COLLECTION } from "../constants/constants";
-import { MEETING_EVENTS } from "../constants/zoomEnum";
+import { v4 } from "uuid";
+import { FIRESTORE, IN_PROGRESS, REALTIME_DB, SYMBL_VIDEO_URL, TRANSCRIPTS_COLLECTION, WEBHOOK_URL_FOR_SYMBL, ZOOM_MEETINGS_COLLECTION, ZOOM_MEETING_SOURCE, ZOOM_USER_COLLECTION } from "../constants/constants";
+import { MEETING_EVENTS, RECORDING_EVENTS } from "../constants/zoomEnum";
+import Transcripts from "../models/Transcripts";
 import ZOOM_MEETING_PAYLOAD from "../models/ZoomMeetingPayload";
+import { get, post } from "../utils/requests";
+import { generateToken } from "./generateToken";
 import { telephony } from "./telephony";
 
 const express = require('express');
 const app = express();
 
+const converters = require('../converter');
+
 app.post('/', async (req: functions.https.Request, res:functions.Response<any>) => {
     functions.logger.info("Zoom events URL hit", req.body);
-    
-    if(req.body.event === MEETING_EVENTS.MEETING_CREATED){
+    if(req.body.event === RECORDING_EVENTS.RECORDING_COMPLETED){
+        analyzeRecordingFiles(req.body);
+    } else if(req.body.event === MEETING_EVENTS.MEETING_CREATED){
         saveMeetingCredentials(req.body.payload.object.uuid, req.body.payload.object.topic, req.body.payload.operator, req.body.payload.object.id, req.body.payload.object.password)
     } else if(req.body.event === MEETING_EVENTS.MEETING_STARTED){
         let meetingDocs = await REALTIME_DB.ref(ZOOM_MEETINGS_COLLECTION).child(req.body.payload.object.id).get();
-        
+        let meetingOwner = await FIRESTORE.collection(ZOOM_USER_COLLECTION).doc(req.body.payload.object.host_id).get();
+
         if(!meetingDocs.exists){
             functions.logger.error("Meeting does not exist with meetingId " + req.body.payload.object.id);
             res.status(200).send();
             return;
         }
 
+        if(!meetingOwner.exists){
+            functions.logger.error("Owner of meeting not found in Database");
+            res.send(200).send();
+            return;
+        }
+
         let meetingCredentials : any = meetingDocs.toJSON();
-        if(meetingCredentials !== null){
-            telephony(meetingCredentials.meetingName, meetingCredentials.emailAddress, meetingCredentials.meetingId, meetingCredentials.password, req.body.payload.operator_id);
+        let ownerDetails: any = meetingOwner.data();
+        if(meetingCredentials !== null && ownerDetails.type === 1){
+            telephony(meetingCredentials.meetingName, meetingCredentials.emailAddress, meetingCredentials.meetingId, meetingCredentials.password, req.body.payload.object.host_id);
         }
     }
 
@@ -36,6 +51,104 @@ const saveMeetingCredentials = async (uuid: string, meetingName: string, emailAd
     }
 
     REALTIME_DB.ref(ZOOM_MEETINGS_COLLECTION).child(meetingId).set(meetingDetails);
+}
+
+const analyzeRecordingFiles = async (recordingData: any) => {
+    let downloadToken = recordingData.download_token;
+    let videoRecordingFiles = recordingData.payload.object.recording_files.filter((recording : any) => recording.file_extension === "MP4");
+
+    let speakerEventsFiles = recordingData.payload.object.recording_files.filter((recording: any) => recording.file_extension === "TIMELINE");
+
+    let downloadUrl = "";
+
+    if(videoRecordingFiles.length === 1){
+        downloadUrl += videoRecordingFiles[0].download_url;
+    } else {
+        functions.logger.error("Multiple or No Video file recording to be analyzed, hence aborting for recordingPayload ", recordingData);
+        return;
+    }
+    let actualVideoUrl = "";
+    get(downloadUrl, {access_token: downloadToken}, {}, {maxRedirects: 0}).then((response) => {
+        
+    }).catch((error) => {
+        if(error.response.status === 302){
+            actualVideoUrl = error.response.headers.location;
+        }
+        functions.logger.info("Error occured while fetching actual url from redirectUrl of Zoom Recording", error);
+    })
+
+    if(actualVideoUrl.length > 0){
+        let data = JSON.stringify({
+            "url": actualVideoUrl,
+            "confidenceThreshold": 0.6,
+            "timezoneOffset": 0,
+            "webhookUrl" : WEBHOOK_URL_FOR_SYMBL,
+            "channelMetadata": await convertToChannelMetaData(speakerEventsFiles)
+        });
+
+        let headers = await getSymblHeader();
+
+        let params = getSymblParams(speakerEventsFiles);
+
+        let userDetails = (await FIRESTORE.collection(ZOOM_USER_COLLECTION).doc(recordingData.payload.object.host_id).get());
+
+        post(SYMBL_VIDEO_URL, data, params, headers).then((response) => {
+            let transcriptPayload : Transcripts = {
+                transcriptId: v4(),
+                userId: userDetails.data()?.googleUserId,
+                conversationId: response.data.conversationId,
+                jobId: response.data.jobId,
+                status: IN_PROGRESS,
+                videoUrl: '',
+                created_date: Date.now(),
+                updated_date: Date.now(),
+                fileName: `Recording of Meeting at ${videoRecordingFiles[0].recording_end.substring(0,10)}`,
+                fileSize: `${videoRecordingFiles[0].file_size} B`,
+                source: ZOOM_MEETING_SOURCE,
+                fileType: 'mp4'
+            }
+
+            functions.logger.info(`Saving transcripts with transcriptId ${transcriptPayload.transcriptId} for conversationId ${transcriptPayload.conversationId}`);
+
+            FIRESTORE.collection(TRANSCRIPTS_COLLECTION).doc(transcriptPayload.transcriptId).set(transcriptPayload)
+
+        }).catch((error) => {
+            functions.logger.error("Error occured while analyzing Video recording", error);
+        })
+    }
+    
+}
+
+const getSymblHeader = async () => {
+    let accessToken = (await generateToken()).data.accessToken;
+    return {'x-api-key' : accessToken};
+}
+
+const getSymblParams = (speakerEventsFiles : any[]) => {
+    if(!speakerEventsFiles || speakerEventsFiles.length === 0){
+        return {
+            enableSpeakerDiarization: true,
+            diarizationSpeakerCount:2
+        }
+    } else {
+        return {}
+    }
+}
+
+const convertToChannelMetaData = async (speakerEventsFile: any[]) => {
+
+    if(speakerEventsFile.length === 1){
+        let speakerEvents = speakerEventsFile[0];
+        const zoomTimelineConverter = converters.getConverterByName(
+            converters.getConverters().zoom,
+            speakerEvents
+        );
+        
+        const converted = await zoomTimelineConverter.convert();
+        return converted;
+    }
+
+    return [];
 }
 
 export const zoomEvents = functions.https.onRequest(app);
