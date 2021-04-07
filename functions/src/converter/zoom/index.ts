@@ -1,7 +1,10 @@
 const fs = require('fs');
 
-const ZoomConverter = class {
-    constructor(data = {}) {
+export default class ZoomConverter {
+    timeline: any;
+    activeSpeakers: any;
+    speakerEvents: any[];
+    constructor(data : any = {}) {
         const { timeline } = data;
 
         if (!timeline) {
@@ -38,7 +41,7 @@ const ZoomConverter = class {
         this.speakerEvents = [];
     }
 
-    validateTimeline(timelineData) {
+    validateTimeline(timelineData: { timeline: any; }) {
         const { timeline } = timelineData;
         if (Array.isArray(timelineData)) {
             return this.validateTimelineEvents(timelineData);
@@ -50,9 +53,9 @@ const ZoomConverter = class {
         }
     }
 
-    validateTimelineEvents(timeline) {
+    validateTimelineEvents(timeline: any) {
         let invalidIndex = -1;
-        const isValid = timeline.every((data, index) => {
+        const isValid = timeline.every((data: any, index: number) => {
             invalidIndex = index;
             return data.ts && data.users && Array.isArray(data.users);
         });
@@ -64,7 +67,7 @@ const ZoomConverter = class {
         return true;
     }
 
-    getSecondsAndNanos(_nanos) {
+    getSecondsAndNanos(_nanos: any) {
         _nanos = Math.trunc(_nanos);
         let _seconds = _nanos * Math.pow(10, -9);
         let secondsAndNanos = _seconds.toFixed(9).split('.');
@@ -75,8 +78,8 @@ const ZoomConverter = class {
         };
     }
 
-    generateStoppedSpeakingEvents(offset) {
-        Object.values(this.activeSpeakers).forEach(activeSpeaker => {
+    generateStoppedSpeakingEvents(offset: any) {
+        Object.values(this.activeSpeakers).forEach((activeSpeaker: any) => {
             this.speakerEvents.push({
                 type: 'stopped_speaking',
                 user: {
@@ -89,9 +92,9 @@ const ZoomConverter = class {
         });
     }
 
-    extractEvents(activeEvents) {
-        const condensedTimeline = [];
-        activeEvents.forEach(activeEventKey => {
+    extractEvents(activeEvents: any) {
+        const condensedTimeline : any[] = [];
+        activeEvents.forEach((activeEventKey: any) => {
             const activeEvent = this.activeSpeakers[activeEventKey];
 
             if (activeEvent.started && activeEvent.stopped) {
@@ -107,10 +110,10 @@ const ZoomConverter = class {
         return condensedTimeline;
     }
 
-    calculateOffset(ts) {
+    calculateOffset(ts: any) {
         const duration = ts
             .split(':')
-            .map((t, i) => {
+            .map((t: any, i: any) => {
                 let parsedTime = parseFloat(t);
                 switch (i) {
                     case 0:
@@ -123,14 +126,14 @@ const ZoomConverter = class {
 
                 return parsedTime;
             })
-            .reduce((previousValue, currentValue) => {
+            .reduce((previousValue: any, currentValue: any) => {
                 return previousValue + currentValue;
             });
 
         return this.getSecondsAndNanos(duration * Math.pow(10, 9));
     }
 
-    adjustStoppedOffsets(condensedTimeline) {
+    adjustStoppedOffsets(condensedTimeline: any) {
         for (let i = 0; i < condensedTimeline.length; i++) {
             const currentEvent = condensedTimeline[i];
             const nextEvent = condensedTimeline[i + 1];
@@ -152,7 +155,7 @@ const ZoomConverter = class {
         return condensedTimeline;
     }
 
-    condenseTimeline(speakerEvents) {
+    condenseTimeline(speakerEvents: any) {
         let index = 0;
         let condensedTimeline = [];
         this.activeSpeakers = {};
@@ -194,8 +197,8 @@ const ZoomConverter = class {
 
             const offset = this.calculateOffset(ts);
 
-            users.slice(0, 1).forEach(user => {
-                const speakerEvent = {
+            users.slice(0, 1).forEach((user: any) => {
+                const speakerEvent : any = {
                     user: {
                         id: (user.user_id && "".concat(user.user_id)) || user.zoom_userid,
                         name: user.username,
@@ -222,7 +225,7 @@ const ZoomConverter = class {
                         this.speakerEvents.push({...speakerEvent});
                     }
 
-                    if (nextTimeline && nextTimeline.users.slice(0, 1).findIndex(userObject => userObject.user_id === user.user_id) > -1) {
+                    if (nextTimeline && nextTimeline.users.slice(0, 1).findIndex((userObject: any) => userObject.user_id === user.user_id) > -1) {
                         this.activeSpeakers[user.user_id] = user;
                         this.speakerEvents.push({...speakerEvent, type: 'started_speaking'});
                     }

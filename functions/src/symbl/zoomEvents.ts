@@ -11,7 +11,7 @@ import { telephony } from "./telephony";
 const express = require('express');
 const app = express();
 
-const converters = require('../converter');
+const converters = require('./../converter/index');
 
 app.post('/', async (req: functions.https.Request, res:functions.Response<any>) => {
     functions.logger.info("Zoom events URL hit", req.body);
@@ -68,23 +68,23 @@ const analyzeRecordingFiles = async (recordingData: any) => {
         return;
     }
     let actualVideoUrl = "";
-    get(downloadUrl, {access_token: downloadToken}, {}, {maxRedirects: 0}).then((response) => {
-        
-    }).catch((error) => {
+    try{
+        await get(downloadUrl, {access_token: downloadToken}, {}, {maxRedirects: 0})
+    } catch(error) {
         if(error.response.status === 302){
             actualVideoUrl = error.response.headers.location;
         }
-        functions.logger.info("Error occured while fetching actual url from redirectUrl of Zoom Recording", error);
-    })
+        functions.logger.info("Error occured while fetching actual url from redirectUrl of Zoom Recording " + actualVideoUrl, error);
+    }
 
     if(actualVideoUrl.length > 0){
-        let data = JSON.stringify({
+        let data = {
             "url": actualVideoUrl,
             "confidenceThreshold": 0.6,
             "timezoneOffset": 0,
             "webhookUrl" : WEBHOOK_URL_FOR_SYMBL,
             "channelMetadata": await convertToChannelMetaData(speakerEventsFiles)
-        });
+        };
 
         let headers = await getSymblHeader();
 
@@ -99,7 +99,7 @@ const analyzeRecordingFiles = async (recordingData: any) => {
                 conversationId: response.data.conversationId,
                 jobId: response.data.jobId,
                 status: IN_PROGRESS,
-                videoUrl: '',
+                videoUrl: actualVideoUrl,
                 created_date: Date.now(),
                 updated_date: Date.now(),
                 fileName: `Recording of Meeting at ${videoRecordingFiles[0].recording_end.substring(0,10)}`,

@@ -1,5 +1,5 @@
 import * as functions from "firebase-functions";
-import { AUTHORIZATION_CODE, FIRESTORE, ZOOM_TOKEN_URL, ZOOM_USER_COLLECTION, ZOOM_USER_FETCH_URL, ZOOM_USER_SETTINGS_PATCH_URL } from "../constants/constants";
+import { AUTHORIZATION_CODE, FIRESTORE, ZOOM_REDIRECT_URI, ZOOM_TOKEN_URL, ZOOM_USER_COLLECTION, ZOOM_USER_FETCH_URL, ZOOM_USER_SETTINGS_PATCH_URL } from "../constants/constants";
 import { fetchBasicCredentials, ZoomAuthenticationPayload } from "../models/ZoomAuthenticationPayload";
 import { USER_PAYLOAD } from "../models/ZoomUserPayload";
 import { post, get, patch } from "../utils/requests";
@@ -22,8 +22,8 @@ app.post('/', async (req: functions.https.Request, res: functions.Response<any>)
     let zoomPayload: ZoomAuthenticationPayload = {
         code: req.body.token,
         grant_type: AUTHORIZATION_CODE,
-        // redirect_uri: ZOOM_REDIRECT_URI
-        redirect_uri: 'http://localhost:3000/zoom-integrations' //currently uploaded
+        redirect_uri: ZOOM_REDIRECT_URI
+        // redirect_uri: 'http://localhost:3000/zoom-integrations' //currently uploaded
     };
 
     let userId = "";

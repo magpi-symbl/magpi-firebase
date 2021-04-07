@@ -1,8 +1,8 @@
-const converters = {
+const converters : any = {
     'zoom': require('./zoom')
 };
 
-const ConverterFactory = class {
+export default class ConverterFactory {
     constructor() {
         this.getConverters = this.getConverters.bind(this);
         this.getConverterByName = this.getConverterByName.bind(this);
@@ -12,7 +12,7 @@ const ConverterFactory = class {
      * Get a list of converters for supported platforms
      * @returns {{zoom: string}} - Map of supported converters
      */
-    getConverters() {
+    getConverters() : any {
         return {
             zoom: 'zoom',
         };
@@ -24,7 +24,7 @@ const ConverterFactory = class {
      * @param data - Required data to initialize converter
      * @returns converter - The initialized converter
      */
-    getConverterByName(converterName, data) {
+    getConverterByName(converterName: string, data: any) {
         if (!!converters[converterName]) {
             return new converters[converterName](data);
         } else {

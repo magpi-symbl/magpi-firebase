@@ -10,7 +10,7 @@ export const COMPLETED = 'completed';
 
 export const SYMBL_PRODUCTION_URL = "https://api.symbl.ai";
 export const SYMBL_EXPERIENCES_URL = "https://api.symbl.ai/v1/conversations/{conversationId}/experiences";
-export const SYMBL_VIDEO_URL = "https://api.symbl.ai/v1/process/audio/url";
+export const SYMBL_VIDEO_URL = "https://api.symbl.ai/v1/process/video/url";
 export const SYMBL_AUTHENTICATION_TYPE = "application";
 
 export const ZOOM_MEETING_SOURCE = 'zoom';
