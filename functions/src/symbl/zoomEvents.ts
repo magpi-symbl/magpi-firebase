@@ -73,6 +73,7 @@ const analyzeRecordingFiles = async (recordingData: any) => {
     } catch(error) {
         if(error.response.status === 302){
             actualVideoUrl = error.response.headers.location;
+            functions.logger.info("error.response.headers.location " + error.response.headers);
         }
         functions.logger.info("Error occured while fetching actual url from redirectUrl of Zoom Recording " + actualVideoUrl, error);
     }
