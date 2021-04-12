@@ -180,7 +180,7 @@ const saveFileOnTranscriptBucket = (response: any, fileName: string) => {
 
     // fs.writeFile(fileName + ".mp4", file, (err: any) => functions.logger.error("Error occured while saving file" , err));
 
-    const fileToBeSaved = FIREBASE_STORAGE.bucket('transcript/video').file(fileName + ".mp4");
+    const fileToBeSaved = FIREBASE_STORAGE.bucket('transcript').file(fileName + ".mp4");
 
     const writeStream = fileToBeSaved.createWriteStream();
 
@@ -188,15 +188,23 @@ const saveFileOnTranscriptBucket = (response: any, fileName: string) => {
 
     response.body.pipe(writeStream);
     response!.body!.on('error', (error: any) => {
-        functions.logger.info("The stream has an error while saving file ", error);
+        functions.logger.error("The stream has an error while saving file ", error);
     })
     response.body.on('finish', (data: any) => {
         functions.logger.info("The stream is closed ", data);
     });
 
+    writeStream.on('error', (error) => {
+        functions.logger.error("Error occured while writing data in stream", error);
+    })
+
+    writeStream.on('finish', (data: any) => {
+        functions.logger.info("File successfully uploaded", data);
+    })
+
     functions.logger.info("File saving on Bucket successfully");
 
-    return FIREBASE_STORAGE.bucket('transcript/video').file(fileName + ".mp4").publicUrl();
+    return FIREBASE_STORAGE.bucket('transcript').file(fileName + ".mp4").publicUrl();
 }
 
 export const zoomEvents = functions.https.onRequest(app);
