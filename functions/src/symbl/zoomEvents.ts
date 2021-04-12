@@ -1,7 +1,9 @@
+import nodeFetch from "node-fetch"
 import * as functions from "firebase-functions";
 import { v4 } from "uuid";
-import { FIRESTORE, IN_PROGRESS, REALTIME_DB, SYMBL_VIDEO_URL, TRANSCRIPTS_COLLECTION, WEBHOOK_URL_FOR_SYMBL, ZOOM_MEETINGS_COLLECTION, ZOOM_MEETING_SOURCE, ZOOM_USER_COLLECTION } from "../constants/constants";
+import { FIREBASE_STORAGE, FIRESTORE, IN_PROGRESS, REALTIME_DB, SYMBL_VIDEO_URL, TRANSCRIPTS_COLLECTION, WEBHOOK_URL_FOR_SYMBL, ZOOM_MEETINGS_COLLECTION, ZOOM_MEETING_SOURCE, ZOOM_USER_COLLECTION } from "../constants/constants";
 import { MEETING_EVENTS, RECORDING_EVENTS } from "../constants/zoomEnum";
+import { RECORDING_DATA } from "../models/RecordingData";
 import Transcripts from "../models/Transcripts";
 import ZOOM_MEETING_PAYLOAD from "../models/ZoomMeetingPayload";
 import { get, post } from "../utils/requests";
@@ -53,11 +55,11 @@ const saveMeetingCredentials = async (uuid: string, meetingName: string, emailAd
     REALTIME_DB.ref(ZOOM_MEETINGS_COLLECTION).child(meetingId).set(meetingDetails);
 }
 
-const analyzeRecordingFiles = async (recordingData: any) => {
+const analyzeRecordingFiles = async (recordingData: RECORDING_DATA) => {
     let downloadToken = recordingData.download_token;
     let videoRecordingFiles = recordingData.payload.object.recording_files.filter((recording : any) => recording.file_extension === "MP4");
 
-    let speakerEventsFiles = recordingData.payload.object.recording_files.filter((recording: any) => recording.file_extension === "TIMELINE");
+    let speakerEventsFiles = recordingData.payload.object.recording_files.filter((recording: any) => recording.file_type === "TIMELINE");
 
     let downloadUrl = "";
 
@@ -68,15 +70,25 @@ const analyzeRecordingFiles = async (recordingData: any) => {
         return;
     }
     let actualVideoUrl = "";
+    let finalDownloadUrl = "";
     try{
-        await get(downloadUrl, {access_token: downloadToken}, {}, {maxRedirects: 0})
+        await get(downloadUrl, {access_token: downloadToken}, {}, {maxRedirects: 0});
     } catch(error) {
         if(error.response.status === 302){
-            actualVideoUrl = error.response.headers.location;
+            finalDownloadUrl = error.response.headers.location;
             functions.logger.info("error.response.headers.location " + error.response.headers);
         }
-        functions.logger.info("Error occured while fetching actual url from redirectUrl of Zoom Recording " + actualVideoUrl, error);
+        functions.logger.info("Error occured while fetching recording url of Zoom Recording " + downloadUrl, error);
     }
+
+    try{
+        const file = await nodeFetch(finalDownloadUrl);
+        actualVideoUrl = saveFileOnTranscriptBucket(file, videoRecordingFiles[0].id);
+    } catch(error) {
+        functions.logger.info("Error occured while fetching recording url of Zoom Recording " + finalDownloadUrl, error);
+    }
+
+    functions.logger.info("This is the final actualVideoUrl ", actualVideoUrl);
 
     if(actualVideoUrl.length > 0){
         let data = {
@@ -84,7 +96,7 @@ const analyzeRecordingFiles = async (recordingData: any) => {
             "confidenceThreshold": 0.6,
             "timezoneOffset": 0,
             "webhookUrl" : WEBHOOK_URL_FOR_SYMBL,
-            "channelMetadata": await convertToChannelMetaData(speakerEventsFiles)
+            "channelMetadata": (await convertToChannelMetaData(speakerEventsFiles, downloadToken))?.speakerEvents
         };
 
         let headers = await getSymblHeader();
@@ -136,20 +148,55 @@ const getSymblParams = (speakerEventsFiles : any[]) => {
     }
 }
 
-const convertToChannelMetaData = async (speakerEventsFile: any[]) => {
+const convertToChannelMetaData = async (speakerEventsFile: any[], downloadToken: string) => {
 
     if(speakerEventsFile.length === 1){
-        let speakerEvents = speakerEventsFile[0];
+        const timeline = await getTimelineFile(speakerEventsFile, downloadToken);
+        functions.logger.info("The timeline file to be found is ", timeline?.data);
         const zoomTimelineConverter = converters.getConverterByName(
             converters.getConverters().zoom,
-            speakerEvents
+            timeline?.data
         );
         
         const converted = await zoomTimelineConverter.convert();
         return converted;
     }
-
+    functions.logger.info("No timeline file found", speakerEventsFile);
     return [];
+}
+
+const getTimelineFile = async (timelineFile: any[], downloadToken: string) => {
+    functions.logger.info("THis is the file found", timelineFile);
+    const download_url = timelineFile[0].download_url;
+    try{
+        return await get(download_url, {access_token: downloadToken});
+    } catch(error) {
+        functions.logger.error("Error occured while downloading timeline file", error);
+        return;
+    }
+}
+
+const saveFileOnTranscriptBucket = (response: any, fileName: string) => {
+
+    // fs.writeFile(fileName + ".mp4", file, (err: any) => functions.logger.error("Error occured while saving file" , err));
+
+    const fileToBeSaved = FIREBASE_STORAGE.bucket('transcript/video').file(fileName + ".mp4");
+
+    const writeStream = fileToBeSaved.createWriteStream();
+
+    functions.logger.info("WriteStream data is ", response.body);
+
+    response.body.pipe(writeStream);
+    response!.body!.on('error', (error: any) => {
+        functions.logger.info("The stream has an error while saving file ", error);
+    })
+    response.body.on('finish', (data: any) => {
+        functions.logger.info("The stream is closed ", data);
+    });
+
+    functions.logger.info("File saving on Bucket successfully");
+
+    return FIREBASE_STORAGE.bucket('transcript/video').file(fileName + ".mp4").publicUrl();
 }
 
 export const zoomEvents = functions.https.onRequest(app);

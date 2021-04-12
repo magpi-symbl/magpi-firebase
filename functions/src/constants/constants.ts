@@ -4,6 +4,7 @@ const app = admin.initializeApp();
 
 export const FIRESTORE = app.firestore();
 export const REALTIME_DB = app.database();
+export const FIREBASE_STORAGE = app.storage();
 
 export const IN_PROGRESS = 'in_progress';
 export const COMPLETED = 'completed';
@@ -15,9 +16,9 @@ export const SYMBL_AUTHENTICATION_TYPE = "application";
 
 export const ZOOM_MEETING_SOURCE = 'zoom';
 
-export const WEBHOOK_URL_FOR_SYMBL = "https://us-central1-chappie-dev.cloudfunctions.net/symblCallback";
+export const WEBHOOK_URL_FOR_SYMBL = "https://us-central1-magpie-dev-niks.cloudfunctions.net/symblCallback";
 
-export const ZOOM_REDIRECT_URI = 'https://chappie-dev.web.app/zoom-integrations';
+export const ZOOM_REDIRECT_URI = 'https://magpie-dev-niks.web.app/zoom-integrations';
 export const ZOOM_USER_COLLECTION = 'zoom_users';
 export const ZOOM_MEETINGS_COLLECTION = 'meetings';
 export const ZOOM_TOKEN_URL = 'https://zoom.us/oauth/token';
