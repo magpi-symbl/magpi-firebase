@@ -3,15 +3,12 @@ import * as functions from "firebase-functions";
 import { v4 } from "uuid";
 import { FIREBASE_STORAGE, FIRESTORE, IN_PROGRESS, REALTIME_DB, SYMBL_VIDEO_URL, TRANSCRIPTS_COLLECTION, WEBHOOK_URL_FOR_SYMBL, ZOOM_MEETINGS_COLLECTION, ZOOM_MEETING_SOURCE, ZOOM_USER_COLLECTION } from "../constants/constants";
 import { MEETING_EVENTS, RECORDING_EVENTS } from "../constants/zoomEnum";
-import { RECORDING_DATA } from "../models/RecordingData";
+import { Recording_Data, Recording_Files } from "../models/RecordingData";
 import Transcripts from "../models/Transcripts";
 import ZOOM_MEETING_PAYLOAD from "../models/ZoomMeetingPayload";
 import { get, post } from "../utils/requests";
 import { generateToken } from "./generateToken";
 import { telephony } from "./telephony";
-import * as util from 'util';
-import * as stream from 'stream';
-
 
 const express = require('express');
 const app = express();
@@ -58,7 +55,7 @@ const saveMeetingCredentials = async (uuid: string, meetingName: string, emailAd
     REALTIME_DB.ref(ZOOM_MEETINGS_COLLECTION).child(meetingId).set(meetingDetails);
 }
 
-const analyzeRecordingFiles = async (recordingData: RECORDING_DATA) => {
+const analyzeRecordingFiles = async (recordingData: Recording_Data) => {
     let downloadToken = recordingData.download_token;
     let videoRecordingFiles = recordingData.payload.object.recording_files.filter((recording : any) => recording.file_extension === "MP4");
 
@@ -126,6 +123,7 @@ const analyzeRecordingFiles = async (recordingData: RECORDING_DATA) => {
                 conversationId: response.data.conversationId,
                 jobId: response.data.jobId,
                 status: IN_PROGRESS,
+                duration: getDuration(videoRecordingFiles[0]),
                 videoUrl: actualVideoUrl,
                 created_date: Date.now(),
                 updated_date: Date.now(),
@@ -144,6 +142,12 @@ const analyzeRecordingFiles = async (recordingData: RECORDING_DATA) => {
         })
     }
     
+}
+
+const getDuration = (recoredingFile: Recording_Files) : string => {
+    let startDate = new Date(recoredingFile.recording_start);
+    let endDate   = new Date(recoredingFile.recording_end);
+    return ((endDate.getTime() - startDate.getTime()) / 60000).toString();
 }
 
 const getSymblHeader = async () => {
@@ -219,29 +223,31 @@ const getTimelineFile = async (timelineFile: any[], downloadToken: string) => {
 
 // }
 
-const saveFileOnBucket = async (response: any, fileName: string) => {
-    const finished = util.promisify(stream.finished); // (A)
-    const bucketName = 'magpie-dev-niks.appspot.com';
-    const bucket = FIREBASE_STORAGE.bucket(bucketName);
-     const fileToBeSaved = bucket.file(fileName + ".mp4");
-     const writeStream = fileToBeSaved.createWriteStream();
-     functions.logger.info("WriteStream data is ", response.body);
+const saveFileOnBucket = async (response: any, fileName: string) : Promise<string> => {
 
-    response.body.pipe(writeStream);
-    response!.body!.on('error', (error: any) => {
-        functions.logger.error("The stream has an error while saving file ", error);
+    return new Promise((resolve, reject) => {
+        // const finished = util.promisify(stream.finished); // (A)
+        const bucketName = 'magpie-dev-niks.appspot.com';
+        const bucket = FIREBASE_STORAGE.bucket(bucketName);
+        const fileToBeSaved = bucket.file(fileName + ".mp4");
+        const writeStream = fileToBeSaved.createWriteStream();
+        functions.logger.info("WriteStream data is ", response.body);
+    
+        response.body.pipe(writeStream);
+        response!.body!.on('error', (error: any) => {
+            functions.logger.error("The stream has an error while saving file ", error);
+        })
+        response.body.on('finish', (data: any) => {
+            functions.logger.info("The stream is closed ", data);
+            resolve(bucket.file(fileName + ".mp4").publicUrl())
+        });
+    
+        writeStream.on('error', (error) => {
+            functions.logger.error("Error occured while writing data in stream", error);
+            reject(error);
+        })
+
     })
-    response.body.on('finish', (data: any) => {
-        functions.logger.info("The stream is closed ", data);
-    });
-
-    writeStream.on('error', (error) => {
-        functions.logger.error("Error occured while writing data in stream", error);
-    })
-
-     writeStream.end();
-     await finished(writeStream);
-     return bucket.file(fileName + ".mp4").publicUrl();
 }
 
 

@@ -5,6 +5,7 @@ export default interface Transcripts {
     jobId: string;
     status: string;
     videoUrl: string;
+    duration: string;
     created_date: number;
     updated_date: number;
     fileName: string;

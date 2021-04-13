@@ -71,6 +71,7 @@ export const telephony = async (meetingName: string, emailAddress: string, meeti
                             jobId: connection.connectionId,
                             status: COMPLETED,
                             videoUrl: '',
+                            duration: '',
                             created_date: Date.now(),
                             updated_date: Date.now(),
                             fileName: meetingName,
