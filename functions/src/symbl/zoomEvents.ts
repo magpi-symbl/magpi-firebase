@@ -9,6 +9,9 @@ import ZOOM_MEETING_PAYLOAD from "../models/ZoomMeetingPayload";
 import { get, post } from "../utils/requests";
 import { generateToken } from "./generateToken";
 import { telephony } from "./telephony";
+import * as util from 'util';
+import * as stream from 'stream';
+
 
 const express = require('express');
 const app = express();
@@ -83,9 +86,20 @@ const analyzeRecordingFiles = async (recordingData: RECORDING_DATA) => {
 
     try{
         const file = await nodeFetch(finalDownloadUrl);
-        actualVideoUrl = saveFileOnTranscriptBucket(file, videoRecordingFiles[0].id);
+        actualVideoUrl = await saveFileOnBucket(file, videoRecordingFiles[0].id);
+
     } catch(error) {
         functions.logger.info("Error occured while fetching recording url of Zoom Recording " + finalDownloadUrl, error);
+    }
+
+    
+    try{
+        const bucketName = 'magpie-dev-niks.appspot.com';
+        const bucket = FIREBASE_STORAGE.bucket(bucketName);
+        await bucket.makePublic();
+        
+    } catch(error) {
+        functions.logger.info("Error occured while making bucket public "+error);
     }
 
     functions.logger.info("This is the final actualVideoUrl ", actualVideoUrl);
@@ -176,15 +190,42 @@ const getTimelineFile = async (timelineFile: any[], downloadToken: string) => {
     }
 }
 
-const saveFileOnTranscriptBucket = (response: any, fileName: string) => {
+// const saveFileOnTranscriptBucket = (response: any, fileName: string) => {
 
-    // fs.writeFile(fileName + ".mp4", file, (err: any) => functions.logger.error("Error occured while saving file" , err));
+//    const bucketName = 'magpie-dev-niks.appspot.com';
+//    const bucket = FIREBASE_STORAGE.bucket(bucketName);
+//     const fileToBeSaved = bucket.file(fileName + ".mp4");
+//     const writeStream = fileToBeSaved.createWriteStream();
 
-    const fileToBeSaved = FIREBASE_STORAGE.bucket('transcript').file(fileName + ".mp4");
+//     functions.logger.info("WriteStream data is ", response.body);
 
-    const writeStream = fileToBeSaved.createWriteStream();
+//     response.body.pipe(writeStream);
+//     response!.body!.on('error', (error: any) => {
+//         functions.logger.error("The stream has an error while saving file ", error);
+//     })
+//     response.body.on('finish', (data: any) => {
+//         functions.logger.info("The stream is closed ", data);
+//     });
 
-    functions.logger.info("WriteStream data is ", response.body);
+//     writeStream.on('error', (error) => {
+//         functions.logger.error("Error occured while writing data in stream", error);
+//     })
+
+//     writeStream.on('finish', (data: any) => {
+//         functions.logger.info("File saving on Bucket successfully");
+//         return bucket.file(fileName + ".mp4").publicUrl();
+//         functions.logger.info("File successfully uploaded", data);
+//     })
+
+// }
+
+const saveFileOnBucket = async (response: any, fileName: string) => {
+    const finished = util.promisify(stream.finished); // (A)
+    const bucketName = 'magpie-dev-niks.appspot.com';
+    const bucket = FIREBASE_STORAGE.bucket(bucketName);
+     const fileToBeSaved = bucket.file(fileName + ".mp4");
+     const writeStream = fileToBeSaved.createWriteStream();
+     functions.logger.info("WriteStream data is ", response.body);
 
     response.body.pipe(writeStream);
     response!.body!.on('error', (error: any) => {
@@ -198,13 +239,10 @@ const saveFileOnTranscriptBucket = (response: any, fileName: string) => {
         functions.logger.error("Error occured while writing data in stream", error);
     })
 
-    writeStream.on('finish', (data: any) => {
-        functions.logger.info("File successfully uploaded", data);
-    })
-
-    functions.logger.info("File saving on Bucket successfully");
-
-    return FIREBASE_STORAGE.bucket('transcript').file(fileName + ".mp4").publicUrl();
+     writeStream.end();
+     await finished(writeStream);
+     return bucket.file(fileName + ".mp4").publicUrl();
 }
+
 
 export const zoomEvents = functions.https.onRequest(app);
