@@ -63,7 +63,7 @@ const analyzeRecordingFiles = async (recordingData: Recording_Data) => {
 
     let downloadUrl = "";
 
-    if(videoRecordingFiles.length === 1){
+    if(videoRecordingFiles.length >= 1){
         downloadUrl += videoRecordingFiles[0].download_url;
     } else {
         functions.logger.error("Multiple or No Video file recording to be analyzed, hence aborting for recordingPayload ", recordingData);
