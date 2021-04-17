@@ -147,7 +147,8 @@ const analyzeRecordingFiles = async (recordingData: Recording_Data) => {
 const getDuration = (recoredingFile: Recording_Files) : string => {
     let startDate = new Date(recoredingFile.recording_start);
     let endDate   = new Date(recoredingFile.recording_end);
-    return ((endDate.getTime() - startDate.getTime()) / 60000).toString();
+    let duration: string = ((endDate.getTime() - startDate.getTime())/60000).toFixed(2);
+    return (duration+' min');
 }
 
 const getSymblHeader = async () => {
