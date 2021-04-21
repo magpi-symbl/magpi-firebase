@@ -1,0 +1,14 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /transcripts/{transcriptsId} {
+        allow read: if request.auth.uid == resource.data.userId;
+        allow write: if request.resource.data.userId == request.auth.uid;
+        allow update: if request.resource.data.userId == request.auth.uid;
+    }
+    match /zoom_users/{zoomId} {
+        allow read: if true;
+        allow write: if resource.data.googleUserId == request.auth.uid;
+    }
+  }
+}
