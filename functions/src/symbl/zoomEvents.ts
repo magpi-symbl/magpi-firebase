@@ -13,7 +13,7 @@ import { telephony } from "./telephony";
 const express = require('express');
 const app = express();
 
-const converters = require('./../converter/index');
+// const converters = require('./../converter/index');
 
 app.post('/', async (req: functions.https.Request, res:functions.Response<any>) => {
     functions.logger.info("Zoom events URL hit", req.body);
@@ -107,7 +107,7 @@ const analyzeRecordingFiles = async (recordingData: Recording_Data) => {
             "confidenceThreshold": 0.6,
             "timezoneOffset": 0,
             "webhookUrl" : WEBHOOK_URL_FOR_SYMBL,
-            "channelMetadata": (await convertToChannelMetaData(speakerEventsFiles, downloadToken))?.speakerEvents
+            // "channelMetadata": (await convertToChannelMetaData(speakerEventsFiles, downloadToken))?.speakerEvents
         };
 
         let headers = await getSymblHeader();
@@ -167,61 +167,32 @@ const getSymblParams = (speakerEventsFiles : any[]) => {
     }
 }
 
-const convertToChannelMetaData = async (speakerEventsFile: any[], downloadToken: string) => {
+// const convertToChannelMetaData = async (speakerEventsFile: any[], downloadToken: string) => {
 
-    if(speakerEventsFile.length === 1){
-        const timeline = await getTimelineFile(speakerEventsFile, downloadToken);
-        functions.logger.info("The timeline file to be found is ", timeline?.data);
-        const zoomTimelineConverter = converters.getConverterByName(
-            converters.getConverters().zoom,
-            timeline?.data
-        );
+//     if(speakerEventsFile.length === 1){
+//         const timeline = await getTimelineFile(speakerEventsFile, downloadToken);
+//         functions.logger.info("The timeline file to be found is ", timeline?.data);
+//         const zoomTimelineConverter = converters.getConverterByName(
+//             converters.getConverters().zoom,
+//             timeline?.data
+//         );
         
-        const converted = await zoomTimelineConverter.convert();
-        return converted;
-    }
-    functions.logger.info("No timeline file found", speakerEventsFile);
-    return [];
-}
+//         const converted = await zoomTimelineConverter.convert();
+//         return converted;
+//     }
+//     functions.logger.info("No timeline file found", speakerEventsFile);
+//     return [];
+// }
 
-const getTimelineFile = async (timelineFile: any[], downloadToken: string) => {
-    functions.logger.info("THis is the file found", timelineFile);
-    const download_url = timelineFile[0].download_url;
-    try{
-        return await get(download_url, {access_token: downloadToken});
-    } catch(error) {
-        functions.logger.error("Error occured while downloading timeline file", error);
-        return;
-    }
-}
-
-// const saveFileOnTranscriptBucket = (response: any, fileName: string) => {
-
-//    const bucketName = 'magpie-dev-niks.appspot.com';
-//    const bucket = FIREBASE_STORAGE.bucket(bucketName);
-//     const fileToBeSaved = bucket.file(fileName + ".mp4");
-//     const writeStream = fileToBeSaved.createWriteStream();
-
-//     functions.logger.info("WriteStream data is ", response.body);
-
-//     response.body.pipe(writeStream);
-//     response!.body!.on('error', (error: any) => {
-//         functions.logger.error("The stream has an error while saving file ", error);
-//     })
-//     response.body.on('finish', (data: any) => {
-//         functions.logger.info("The stream is closed ", data);
-//     });
-
-//     writeStream.on('error', (error) => {
-//         functions.logger.error("Error occured while writing data in stream", error);
-//     })
-
-//     writeStream.on('finish', (data: any) => {
-//         functions.logger.info("File saving on Bucket successfully");
-//         return bucket.file(fileName + ".mp4").publicUrl();
-//         functions.logger.info("File successfully uploaded", data);
-//     })
-
+// const getTimelineFile = async (timelineFile: any[], downloadToken: string) => {
+//     functions.logger.info("THis is the file found", timelineFile);
+//     const download_url = timelineFile[0].download_url;
+//     try{
+//         return await get(download_url, {access_token: downloadToken});
+//     } catch(error) {
+//         functions.logger.error("Error occured while downloading timeline file", error);
+//         return;
+//     }
 // }
 
 const saveFileOnBucket = async (response: any, fileName: string) : Promise<string> => {
