@@ -1,7 +1,7 @@
 import nodeFetch from "node-fetch"
 import * as functions from "firebase-functions";
 import { v4 } from "uuid";
-import { FIREBASE_STORAGE, FIRESTORE, IN_PROGRESS, REALTIME_DB, SYMBL_VIDEO_URL, TRANSCRIPTS_COLLECTION, WEBHOOK_URL_FOR_SYMBL, ZOOM_MEETINGS_COLLECTION, ZOOM_MEETING_SOURCE, ZOOM_USER_COLLECTION } from "../constants/constants";
+import { BUCKET_NAME, FIREBASE_STORAGE, FIRESTORE, IN_PROGRESS, REALTIME_DB, SYMBL_VIDEO_URL, TRANSCRIPTS_COLLECTION, WEBHOOK_URL_FOR_SYMBL, ZOOM_MEETINGS_COLLECTION, ZOOM_MEETING_SOURCE, ZOOM_USER_COLLECTION } from "../constants/constants";
 import { MEETING_EVENTS, RECORDING_EVENTS } from "../constants/zoomEnum";
 import { Recording_Data, Recording_Files } from "../models/RecordingData";
 import Transcripts from "../models/Transcripts";
@@ -91,7 +91,7 @@ const analyzeRecordingFiles = async (recordingData: Recording_Data) => {
 
     
     try{
-        const bucketName = 'magpie-dev-niks.appspot.com';
+        const bucketName = BUCKET_NAME;
         const bucket = FIREBASE_STORAGE.bucket(bucketName);
         await bucket.makePublic();
         

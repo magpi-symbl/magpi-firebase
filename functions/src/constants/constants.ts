@@ -28,3 +28,4 @@ export const ZOOM_USER_SETTINGS_PATCH_URL = 'https://api.zoom.us/v2/users/{userI
 export const AUTHORIZATION_CODE = 'authorization_code';
 
 export const TRANSCRIPTS_COLLECTION = 'transcripts';
+export const BUCKET_NAME = 'magpie-dev-niks.appspot.com';
