@@ -196,10 +196,10 @@ const getSymblParams = (speakerEventsFiles : any[]) => {
 // }
 
 const saveFileOnBucket = async (response: any, fileName: string) : Promise<string> => {
-
+    
     return new Promise((resolve, reject) => {
         // const finished = util.promisify(stream.finished); // (A)
-        const bucketName = 'magpie-dev-niks.appspot.com';
+        const bucketName = BUCKET_NAME;
         const bucket = FIREBASE_STORAGE.bucket(bucketName);
         const fileToBeSaved = bucket.file(fileName + ".mp4");
         const writeStream = fileToBeSaved.createWriteStream();

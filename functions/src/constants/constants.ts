@@ -16,9 +16,9 @@ export const SYMBL_AUTHENTICATION_TYPE = "application";
 
 export const ZOOM_MEETING_SOURCE = 'zoom';
 
-export const WEBHOOK_URL_FOR_SYMBL = "https://us-central1-magpie-dev-niks.cloudfunctions.net/symblCallback";
+export const WEBHOOK_URL_FOR_SYMBL = "https://us-central1-external-1-314203.cloudfunctions.net/symblCallback";
 
-export const ZOOM_REDIRECT_URI = 'https://magpie-dev-niks.web.app/zoom-integrations';
+export const ZOOM_REDIRECT_URI = 'https://app.magpi.ai/zoom-integrations';
 export const ZOOM_USER_COLLECTION = 'zoom_users';
 export const ZOOM_MEETINGS_COLLECTION = 'meetings';
 export const ZOOM_TOKEN_URL = 'https://zoom.us/oauth/token';
@@ -28,4 +28,4 @@ export const ZOOM_USER_SETTINGS_PATCH_URL = 'https://api.zoom.us/v2/users/{userI
 export const AUTHORIZATION_CODE = 'authorization_code';
 
 export const TRANSCRIPTS_COLLECTION = 'transcripts';
-export const BUCKET_NAME = 'magpie-dev-niks.appspot.com';
+export const BUCKET_NAME = 'external-1-314203.appspot.com';

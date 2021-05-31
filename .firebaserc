@@ -1,6 +1,7 @@
 {
   "projects": {
     "default": "chappie-dev",
-    "dev": "magpie-dev-niks"
+    "dev": "magpie-dev-niks",
+    "production": "external-1-314203"
   }
 }
