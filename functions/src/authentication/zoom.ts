@@ -35,7 +35,8 @@ app.post('/', async (req: functions.https.Request, res: functions.Response<any>)
         let decodedValue: { uid: string } = jwtDecode(accessToken);
         userId = decodedValue.uid;
     } catch (error) {
-        functions.logger.error("Could not fetch accessToken", error);
+        functions.logger.error("Could not fetch accessToken response = ", error.response);
+        functions.logger.error("Could not fetch accessToken data = ", error.data);
         res.status(400).send({ "message": "Token has expired" });
         return;
     }

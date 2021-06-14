@@ -12,5 +12,8 @@ export const app_secret = firebase_config.magpie.app_secret;
 
 export const token_generate_url = symbl_url + token_path;
 
-export const zoom_username = firebase_config.zoom.username;
-export const zoom_password = firebase_config.zoom.password;
+//export const zoom_username = firebase_config.zoom.username;
+//export const zoom_password = firebase_config.zoom.password;
+
+export const zoom_username = 'uHUmx1bMTTqvhP8CcQbqyA';
+export const zoom_password = 'AdRrFTpNdIa7FSNQ9wE56td4fTG10NI6';

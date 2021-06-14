@@ -15,6 +15,7 @@ export const fetchAccessToken = functions.https.onRequest((request, response) =>
     functions.logger.info("fetchAccessToken request from UI", request.body);
   
     generateToken().then((respObj) => {
+      console.log('generateToken:: response ==',respObj.data)
       response.status(200).send({token: respObj.data.accessToken});
     }).catch((err) => {
       functions.logger.error("Error occured while generating token ", err);
