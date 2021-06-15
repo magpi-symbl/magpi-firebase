@@ -131,6 +131,8 @@ This guide is actively developed, and we love to hear from you! Please feel free
 This library is released under the [Apache License][license]
 
 [license]: LICENSE.txt
+[telephony]: https://docs.symbl.ai/docs/telephony/overview/post-api
+[websocket]: https://docs.symbl.ai/docs/streamingapi/overview/introduction
 [signup]: https://platform.symbl.ai/?_ga=2.63499307.526040298.1609788827-1505817196.1609788827
 [issues]: https://github.com/magpi-symbl/magpi-firebase/issues
 [pulls]: https://github.com/magpi-symbl/magpi-firebase/pulls
