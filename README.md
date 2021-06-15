@@ -1,6 +1,6 @@
 # Magpi - Firebase Cloud Functions for Magpi
 
-[![Websocket](https://img.shields.io/badge/symbl-websocket-brightgreen)](https://docs.symbl.ai/docs/streamingapi/overview/introduction)
+[Symbl Docs](https://docs.symbl.ai/docs)
 
 Symbl's APIs empower developers to enable:
 
@@ -11,7 +11,7 @@ Symbl's APIs empower developers to enable:
 
 <hr />
 
-## Firebase Cloud Functions
+## Firebase Cloud Functions for Magpi
 
 <hr />
 
@@ -26,155 +26,112 @@ Symbl's APIs empower developers to enable:
 
 ## Introduction
 
-This is a multi-party video conferencing application that demonstrates [Symbl's Real-time APIs](https://docs.symbl.ai/docs/streamingapi/overview/introduction). This application is inspired by [Twilio's video app](https://github.com/twilio/twilio-video-app-react) and is built using [twilio-video.js](https://github.com/twilio/twilio-video-app-react) and [Create React App](https://github.com/facebook/create-react-app).
+This app contains firebase cloud function which [Magpi][magpi] app would require to Authenticate Symbl/Zoom and Pick Magpi app as a trigger, which will kick off automation
+The data is stored in Firebase back-end firestore servers and is built using React App.
 
 ## Pre-requisites
 
 - JS ES6+/Typescript
 - [Node.js v10+](https://nodejs.org/en/download/)\*
-- NPM v6+
-- Zoom account - https://www.twilio.com/try-twilio
+- User should have Zoom Business/Pro Account for Auto Transcript of Zoom Meetings and must have enabled permissions for Recording and Transcription(https://zoom.us/signup)
+- The Firebase Project should be setup with following enabled
+
+- Realtime Database
+- Hosting- (Optional)
+- Authentication
+- Storage
+
+Make sure to select Blaze Plan to enabled Cloud Functions.
 
 ## Features
 
-- Live Closed Captioning
-- Real-time Transcription
-- Video conferencing with real-time video and audio
-- Enable/Disable camera
-- Mute/unmute mic
-- Screen sharing
-- Dominant Speaker indicator
-- Network Quality Indicator
+This Firebase Cloud Functions App primarily performs these 4 functions
+
+- fetchAccessToken - to fetch the Symbl Access Token
+- fetchZoomUserDetails - To fetch the Details of the Logged in Zoom user for Magpi App
+- symblCallback - http call for Symbl to callback for Updating the job status
+- zoomEvents - Every time a Recording is saved in the User's Zoom account - this performs the task of Storing that recording on Cloud Storage and
+  passing the same to Symbl for Cloud Transcription
 
 ## Browser Support
 
-This application is supported only on Google Chrome.
+NA
 
 ## Setup and Deploy
 
-The first step to getting setup is to [sign up][signup].
+-The first step to getting setup is to [sign up][signup] on Symbl and Generate App ID And App Secret
+Store Your Symbl App Id and App Secret using the below commands in firebase config params
 
-Gather your Symbl credentials:
+$ firebase functions:config:set magpi.app_id= App ID for Symbl
 
-1. Your App Id that you can get from [Platform](https://platform.symbl.ai)
-2. Your App Secret that you can get from [Platform](https://platform.symbl.ai)
+$ firebase functions:config:set magpi.app_secret= App Secret for Symbl
 
-Store Your Symbl App Id and App Secret using the below commands
+-Setup the Symbl Url using the below commands:
 
-firebase functions:config:set magpi.app_id= <App ID for Symbl>
-firebase functions:config:set magpi.app_secret= <App Secret for Symbl >
+$ firebase functions:config:set magpi.symbl_url=https://api.symbl.ai/
 
-Also Setup the Symbl Url using the below commands:
+$ firebase functions:config:set magpi.token_path=oauth2/token:generate
 
-firebase functions:config:set magpi.symbl_url=https://api.symbl.ai/
-firebase functions:config:set magpi.token_path=oauth2/token:generate
+-Create new OAuth application from Zoom Marketplace -(https://marketplace.zoom.us/develop/create)
 
-Store your Twilio credentials in the [.env](https://github.com/symblai/symbl-twilio-video-react/blob/master/.env) file:
+$ firebase functions:config:set zoom.clientid= Client Id for your Zoom MarketPlace App
 
-1. In your Twilio console click on 'Settings' and take note of your Account SID.
-2. Navigate to Settings/API Keys to generate a new Key SID and Secret
+$ firebase functions:config:set zoom.clientsecret= Client Secret for your Zoom MarketPlace App
 
-```.env
-TWILIO_ACCOUNT_SID=ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-TWILIO_API_KEY_SID=SKxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-TWILIO_API_KEY_SECRET=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-```
+## Setup for Firebase and GCP
 
-The local token server is managed by [server.js](https://github.com/symblai/symbl-video-react/blob/master/server.js)
+$ firebase functions:config:set firebase.cloud_base_url= Base Url for your cloud functions
 
-Run the app locally with
+$ firebase functions:config:set zoom.app_base_url= Base Url for the app
 
-    $ npm start
+$ firebase functions:config:set zoom.gcp_bucket=GCP Bucket
 
-This will start the local token server and run the app in the development mode. Open [http://localhost:3000](http://localhost:3000) to see the application in the browser.
+## Setup Your firebase Cloud Functions
 
-The page will reload if you make changes to the source code in `src/`.
-You will also see any linting errors in the console. Start the token server locally with
-
-    $ npm run server
-
-The token server runs on port 8081 exposes two `GET` endpoints. One to generate access token for Symbl and one for generating access token for Twilio.
-
-Symbl token endpoint expects `GET` request at `/symbl-token` route with no parameters.
-
-The response will be a JSON response with `accessToken` and `expiresIn` values with Symbl access token and expiry of token.
-
-Try it out with this sample `curl` command:
-
-```bash
-curl 'localhost:8081/symbl-token'
-```
-
-Twilio token endpoint expects `GET` request at `/twilio-token` route with the following query parameters:
-
-```
-identity: string,  // the user's identity
-roomName: string   // the room name
-```
-
-The response will be a token that can be used to connect to a room.
-
-Try it out with this sample `curl` command:
-
-```bash
-curl 'localhost:8081/twilio-token?identity=TestName&roomName=TestRoom'
-```
-
-### Multiple Participants in a Room
-
-If you want to see how the application behaves with multiple participants, you can simply open `localhost:3000` in multiple tabs in your browser and connect to the same room using different user names.
-
-Additionally, if you would like to invite other participants to a room, each participant would need to have their own installation of this application and use the same room name and Account SID (the API Key and Secret can be different).
+    $ npm install -g firebase-tools
+    $ firebase login
+    $ firebase use --add
+    Add the firebase Project you created. This should add an entry in .firebaserc
+    To deploy the cloud functions on your Project
+    $ firebase deploy --only functions
 
 ## Dependencies
 
 ```json
-  "dependencies": {
-    "@material-ui/core": "^4.11.0",
-    "@material-ui/icons": "^4.9.1",
-    "@material-ui/styles": "^4.10.0",
-    "@primer/octicons-react": "^10.0.0",
-    "@testing-library/jest-dom": "^4.2.4",
-    "@testing-library/react": "^9.5.0",
-    "@testing-library/user-event": "^7.2.1",
-    "clsx": "^1.1.1",
-    "concurrently": "^5.1.0",
-    "d3-timer": "^1.0.10",
-    "dotenv": "^8.2.0",
+   "dependencies": {
+    "@types/jwt-decode": "^3.1.0",
+    "axios": "^0.21.1",
+    "cors": "^2.8.5",
     "express": "^4.17.1",
-    "fscreen": "^1.0.2",
-    "is-plain-object": "^4.1.1",
-    "lodash-es": "^4.17.15",
-    "lodash.throttle": "^4.1.1",
-    "moment": "^2.27.0",
-    "node-fetch": "^2.6.0",
-    "react": "^16.13.1",
-    "react-copy-to-clipboard": "^5.0.2",
-    "react-dom": "^16.13.1",
-    "react-router-dom": "^5.2.0",
-    "react-scripts": "3.4.1",
-    "twilio": "^3.48.1",
-    "twilio-video": "^2.7.1"
+    "firebase-admin": "^9.2.0",
+    "firebase-functions": "^3.11.0",
+    "symbl-node": "^1.0.13",
+    "uuid": "^8.3.2"
+  },
+  "devDependencies": {
+    "@types/node-fetch": "^2.5.10",
+    "@types/uuid": "^8.3.0",
+    "@typescript-eslint/eslint-plugin": "^3.9.1",
+    "@typescript-eslint/parser": "^3.8.0",
+    "firebase-functions-test": "^0.2.0",
+    "typescript": "^3.8.0"
   }
 ```
 
 ## Conclusion
 
-When implemented this application will allow you to join a demo Twilio video conference, and Symbl transcripts will be displayed on screen in real time.
+This repository contains the firebase cloud functions only and once all the steps are complete, user should see cloud functions deployed to Firebase console.
+To Test these cloud functions. Please setup and run Magpi App situated at
 
 ## Community
 
-If you have any questions, feel free to reach out to us at devrelations@symbl.ai or through our [Community Slack][slack] or our [forum][developer_community].
-
+If you have any questions, feel free to reach out to us at magpi@symbl.ai
 This guide is actively developed, and we love to hear from you! Please feel free to [create an issue][issues] or [open a pull request][pulls] with your questions, comments, suggestions and feedback. If you liked our integration guide, please star our repo!
 
 This library is released under the [Apache License][license]
 
 [license]: LICENSE.txt
-[telephony]: https://docs.symbl.ai/docs/telephony/overview/post-api
-[websocket]: https://docs.symbl.ai/docs/streamingapi/overview/introduction
-[developer_community]: https://community.symbl.ai/?_ga=2.134156042.526040298.1609788827-1505817196.1609788827
-[slack]: https://join.slack.com/t/symbldotai/shared_invite/zt-4sic2s11-D3x496pll8UHSJ89cm78CA
 [signup]: https://platform.symbl.ai/?_ga=2.63499307.526040298.1609788827-1505817196.1609788827
-[issues]: https://github.com/symblai/symbl-for-zoom/issues
-[pulls]: https://github.com/symblai/symbl-for-zoom/pulls
+[issues]: https://github.com/magpi-symbl/magpi-firebase/issues
+[pulls]: https://github.com/magpi-symbl/magpi-firebase/pulls
+[magpi]: https://github.com/magpi-symbl/magpi-react
