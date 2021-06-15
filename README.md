@@ -121,7 +121,7 @@ $ firebase functions:config:set zoom.gcp_bucket=GCP Bucket
 ## Conclusion
 
 This repository contains the firebase cloud functions only and once all the steps are complete, user should see cloud functions deployed to Firebase console.
-To Test these cloud functions. Please setup and run Magpi App situated at
+To Test these cloud functions. Please setup and run [Magpi][magpi] App
 
 ## Community
 
